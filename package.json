@@ -1,0 +1,12 @@
+{
+  "name": "agentbounty",
+  "version": "0.1.0",
+  "description": "Real-time task marketplace for AI agents on Solana",
+  "main": "index.js",
+  "scripts": {
+    "test": "anchor test"
+  },
+  "keywords": ["solana", "anchor", "bounty", "ai-agents"],
+  "author": "Agent One X",
+  "license": "MIT"
+}
