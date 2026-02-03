@@ -25,6 +25,7 @@
       "accounts": [
         {
           "name": "protocol",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -45,27 +46,24 @@
         },
         {
           "name": "bounty",
-          "writable": true
-        },
-        {
-          "name": "escrow",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  101,
-                  115,
-                  99,
-                  114,
+                  98,
                   111,
-                  119
+                  117,
+                  110,
+                  116,
+                  121
                 ]
               },
               {
                 "kind": "account",
-                "path": "bounty"
+                "path": "bounty.id",
+                "account": "Bounty"
               }
             ]
           }
@@ -99,6 +97,10 @@
         {
           "name": "poster",
           "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
@@ -121,27 +123,24 @@
       "accounts": [
         {
           "name": "bounty",
-          "writable": true
-        },
-        {
-          "name": "escrow",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  101,
-                  115,
-                  99,
-                  114,
+                  98,
                   111,
-                  119
+                  117,
+                  110,
+                  116,
+                  121
                 ]
               },
               {
                 "kind": "account",
-                "path": "bounty"
+                "path": "bounty.id",
+                "account": "Bounty"
               }
             ]
           }
@@ -150,6 +149,10 @@
           "name": "poster",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
@@ -238,29 +241,6 @@
                 "kind": "account",
                 "path": "protocol.total_bounties",
                 "account": "Protocol"
-              }
-            ]
-          }
-        },
-        {
-          "name": "escrow",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "bounty"
               }
             ]
           }

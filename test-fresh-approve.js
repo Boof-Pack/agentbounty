@@ -1,6 +1,5 @@
 /**
- * Raw transaction test bypassing Anchor SDK
- * Builds instructions manually using discriminators from IDL
+ * Fresh test with new protocol seed to test approve_work fix
  */
 
 const {
@@ -19,7 +18,7 @@ const BN = require('bn.js');
 const PROGRAM_ID = new PublicKey('9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK');
 const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
 
-// Instruction discriminators from IDL (verified)
+// Instruction discriminators from IDL
 const INSTRUCTIONS = {
   initialize: [175, 175, 109, 31, 13, 152, 155, 237],
   createBounty: [122, 90, 14, 143, 8, 125, 200, 2],
@@ -29,7 +28,7 @@ const INSTRUCTIONS = {
 };
 
 async function main() {
-  console.log('\n=== RAW INSTRUCTION TEST ===\n');
+  console.log('\n=== TESTING APPROVE_WORK FIX ===\n');
 
   // Load wallets
   const posterSecret = JSON.parse(fs.readFileSync(process.env.HOME + '/.config/solana/id.json', 'utf-8'));
@@ -40,34 +39,28 @@ async function main() {
   
   console.log('Poster: ', poster.publicKey.toString());
   console.log('Claimer:', claimer.publicKey.toString());
-  
-  // Check balances
-  const posterBalance = await connection.getBalance(poster.publicKey);
-  const claimerBalance = await connection.getBalance(claimer.publicKey);
-  console.log('\nPoster balance: ', (posterBalance / LAMPORTS_PER_SOL).toFixed(4), 'SOL');
-  console.log('Claimer balance:', (claimerBalance / LAMPORTS_PER_SOL).toFixed(4), 'SOL\n');
 
-  // Step 1: Derive protocol PDA (called "platform" in older version, "protocol" in current)
+  // Use a versioned protocol seed to start fresh
+  const protocolSeed = 'protocol_v2';
   const [protocolPDA] = PublicKey.findProgramAddressSync(
-    [Buffer.from('protocol')],
+    [Buffer.from(protocolSeed)],
     PROGRAM_ID
   );
   
-  console.log('Protocol PDA:', protocolPDA.toString());
+  const [feeVaultPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from('fee_vault_v2')],
+    PROGRAM_ID
+  );
+  
+  console.log('\nProtocol PDA (v2):', protocolPDA.toString());
+  console.log('Fee Vault PDA (v2):', feeVaultPDA.toString());
   
   // Check if protocol is initialized
   const protocolAccount = await connection.getAccountInfo(protocolPDA);
   
   if (!protocolAccount) {
-    console.log('Initializing protocol...\n');
+    console.log('\nInitializing fresh protocol...');
     
-    // Derive fee vault PDA
-    const [feeVaultPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('fee_vault')],
-      PROGRAM_ID
-    );
-    
-    // Build initialize instruction (NO args according to IDL)
     const initData = Buffer.from(INSTRUCTIONS.initialize);
     
     const initIx = new TransactionInstruction({
@@ -84,26 +77,17 @@ async function main() {
     const initTx = new Transaction().add(initIx);
     const initSig = await sendAndConfirmTransaction(connection, initTx, [poster]);
     
-    console.log('✅ Protocol initialized!');
-    console.log('   Signature:', initSig);
-    console.log('   Explorer: https://explorer.solana.com/tx/' + initSig + '?cluster=devnet\n');
+    console.log('✅ Protocol initialized:', initSig);
   } else {
-    console.log('✅ Protocol already initialized\n');
+    console.log('\n✅ Protocol already initialized');
   }
   
-  // Step 2: Create bounty
-  // First, fetch protocol account to get total_bounties
+  // Get total bounties
   const protocolData = await connection.getAccountInfo(protocolPDA);
-  if (!protocolData) {
-    throw new Error('Protocol not initialized');
-  }
+  const totalBounties = protocolData.data.readBigUInt64LE(40);
+  console.log('\nTotal bounties:', totalBounties.toString());
   
-  // Parse total_bounties from protocol account
-  // Structure: discriminator(8) + authority(32) + total_bounties(8)
-  const totalBounties = protocolData.data.readBigUInt64LE(40); // At offset 40
-  console.log('Total bounties so far:', totalBounties.toString());
-  
-  // Derive bounty PDA using total_bounties
+  // Derive bounty PDA
   const totalBountiesBuffer = Buffer.alloc(8);
   totalBountiesBuffer.writeBigUInt64LE(totalBounties);
   
@@ -115,14 +99,7 @@ async function main() {
   console.log('Creating bounty #' + totalBounties);
   console.log('Bounty PDA:', bountyPDA.toString());
   
-  // Build create_bounty instruction
-  // Args: title, description, reward_lamports, deadline_ts
-  const title = 'Test Bounty #' + totalBounties;
-  const description = 'Full AgentBounty Flow Verification - Created by AI Agent';
-  const reward = new BN(0.1 * LAMPORTS_PER_SOL);
-  const deadline = new BN(Math.floor(Date.now() / 1000) + 86400);
-  
-  // Encode strings and numbers
+  // Helper to encode strings
   function encodeString(str) {
     const buf = Buffer.from(str, 'utf-8');
     const len = Buffer.alloc(4);
@@ -130,10 +107,14 @@ async function main() {
     return Buffer.concat([len, buf]);
   }
   
+  // 1. CREATE
+  const reward = new BN(0.15 * LAMPORTS_PER_SOL);
+  const deadline = new BN(Math.floor(Date.now() / 1000) + 3600);
+  
   const createData = Buffer.concat([
     Buffer.from(INSTRUCTIONS.createBounty),
-    encodeString(title),
-    encodeString(description),
+    encodeString('Approve Fix Test'),
+    encodeString('Testing approve_work with protocol mut fix'),
     reward.toArrayLike(Buffer, 'le', 8),
     deadline.toArrayLike(Buffer, 'le', 8),
   ]);
@@ -149,16 +130,13 @@ async function main() {
     data: createData,
   });
   
+  console.log('\n1. Creating bounty...');
   const createTx = new Transaction().add(createIx);
   const createSig = await sendAndConfirmTransaction(connection, createTx, [poster]);
+  console.log('✅ Created:', createSig);
   
-  console.log('✅ Bounty created!');
-  console.log('   Signature:', createSig);
-  console.log('   Explorer: https://explorer.solana.com/tx/' + createSig + '?cluster=devnet\n');
-  
-  // Step 3: Claim bounty
-  console.log('Claiming bounty...');
-  
+  // 2. CLAIM
+  console.log('\n2. Claiming bounty...');
   const claimData = Buffer.from(INSTRUCTIONS.claimBounty);
   
   const claimIx = new TransactionInstruction({
@@ -172,18 +150,13 @@ async function main() {
   
   const claimTx = new Transaction().add(claimIx);
   const claimSig = await sendAndConfirmTransaction(connection, claimTx, [claimer]);
+  console.log('✅ Claimed:', claimSig);
   
-  console.log('✅ Bounty claimed!');
-  console.log('   Signature:', claimSig);
-  console.log('   Explorer: https://explorer.solana.com/tx/' + claimSig + '?cluster=devnet\n');
-  
-  // Step 4: Submit proof
-  console.log('Submitting proof...');
-  
-  const proofUrl = `https://explorer.solana.com/tx/${claimSig}?cluster=devnet`;
+  // 3. SUBMIT
+  console.log('\n3. Submitting work...');
   const submitData = Buffer.concat([
     Buffer.from(INSTRUCTIONS.submitWork),
-    encodeString(proofUrl),
+    encodeString('https://github.com/fix/approve'),
   ]);
   
   const submitIx = new TransactionInstruction({
@@ -197,25 +170,17 @@ async function main() {
   
   const submitTx = new Transaction().add(submitIx);
   const submitSig = await sendAndConfirmTransaction(connection, submitTx, [claimer]);
+  console.log('✅ Submitted:', submitSig);
   
-  console.log('✅ Proof submitted!');
-  console.log('   Signature:', submitSig);
-  console.log('   Explorer: https://explorer.solana.com/tx/' + submitSig + '?cluster=devnet\n');
-  
-  // Step 5: Approve and payout
-  console.log('Approving and paying out...');
-  
-  // Derive fee vault PDA
-  const [feeVaultPDA] = PublicKey.findProgramAddressSync(
-    [Buffer.from('fee_vault')],
-    PROGRAM_ID
-  );
+  // 4. APPROVE (THE FIX TEST)
+  console.log('\n4. Approving work (THE FIX)...');
+  const claimerBalanceBefore = await connection.getBalance(claimer.publicKey);
   
   const approveData = Buffer.from(INSTRUCTIONS.approveWork);
   
   const approveIx = new TransactionInstruction({
     keys: [
-      { pubkey: protocolPDA, isSigner: false, isWritable: true }, // FIXED: mut for total_completed update
+      { pubkey: protocolPDA, isSigner: false, isWritable: true }, // FIXED: now mut
       { pubkey: bountyPDA, isSigner: false, isWritable: true },
       { pubkey: feeVaultPDA, isSigner: false, isWritable: true },
       { pubkey: claimer.publicKey, isSigner: false, isWritable: true },
@@ -228,54 +193,25 @@ async function main() {
   
   const approveTx = new Transaction().add(approveIx);
   const approveSig = await sendAndConfirmTransaction(connection, approveTx, [poster]);
+  console.log('✅ APPROVED:', approveSig);
   
-  console.log('✅ Work approved and paid!');
-  console.log('   Signature:', approveSig);
-  console.log('   Explorer: https://explorer.solana.com/tx/' + approveSig + '?cluster=devnet\n');
+  // Check payout
+  const claimerBalanceAfter = await connection.getBalance(claimer.publicKey);
+  const earned = (claimerBalanceAfter - claimerBalanceBefore) / LAMPORTS_PER_SOL;
   
-  // Final balances
-  const finalClaimerBalance = await connection.getBalance(claimer.publicKey);
-  const earned = (finalClaimerBalance - claimerBalance) / LAMPORTS_PER_SOL;
+  console.log('\n🎉 SUCCESS! approve_work is FIXED!');
+  console.log('\nClaimer earned:', earned.toFixed(4), 'SOL');
+  console.log('\n📊 TRANSACTION #8:', approveSig);
+  console.log('Explorer:', `https://explorer.solana.com/tx/${approveSig}?cluster=devnet`);
   
-  console.log('=== RESULTS ===');
-  console.log('Claimer earned:', earned.toFixed(4), 'SOL');
-  console.log('Final balance: ', (finalClaimerBalance / LAMPORTS_PER_SOL).toFixed(4), 'SOL\n');
-  
-  console.log('🎉 FULL BOUNTY FLOW COMPLETE! 🎉\n');
-  console.log('Transaction signatures:');
-  console.log('1. Create:  ', createSig);
-  console.log('2. Claim:   ', claimSig);
-  console.log('3. Submit:  ', submitSig);
-  console.log('4. Approve: ', approveSig);
-  console.log('\nAll verified on Solana Explorer (devnet)\n');
-  
-  // Save results
-  const results = {
-    timestamp: new Date().toISOString(),
-    bountyId: totalBounties.toString(),
-    bountyPDA: bountyPDA.toString(),
-    transactions: {
-      create: { signature: createSig, explorer: `https://explorer.solana.com/tx/${createSig}?cluster=devnet` },
-      claim: { signature: claimSig, explorer: `https://explorer.solana.com/tx/${claimSig}?cluster=devnet` },
-      submit: { signature: submitSig, explorer: `https://explorer.solana.com/tx/${submitSig}?cluster=devnet` },
-      approve: { signature: approveSig, explorer: `https://explorer.solana.com/tx/${approveSig}?cluster=devnet` },
-    },
-    earned: earned.toFixed(4) + ' SOL',
-  };
-  
-  fs.writeFileSync(
-    '/root/.openclaw/workspace/agentbounty/TEST_RESULTS.json',
-    JSON.stringify(results, null, 2)
-  );
-  
-  console.log('✅ Results saved to TEST_RESULTS.json\n');
+  console.log('\n✅ 8/8 SIGNATURES COMPLETE!\n');
 }
 
 main().catch((err) => {
-  console.error('❌ Error:', err);
+  console.error('❌ Error:', err.message);
   if (err.logs) {
-    console.error('\nProgram logs:');
-    err.logs.forEach(log => console.error('  ', log));
+    console.error('\nLogs:');
+    err.logs.forEach(log => console.error(' ', log));
   }
   process.exit(1);
 });

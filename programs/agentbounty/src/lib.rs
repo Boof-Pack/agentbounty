@@ -36,6 +36,7 @@ pub mod agentbounty {
         let protocol = &mut ctx.accounts.protocol;
         let bounty = &mut ctx.accounts.bounty;
         
+        // Set bounty data
         bounty.id = protocol.total_bounties;
         bounty.poster = ctx.accounts.poster.key();
         bounty.title = title;
@@ -49,17 +50,17 @@ pub mod agentbounty {
         bounty.submission = None;
         bounty.completed_at = None;
 
-        // Transfer SOL to escrow
+        // Transfer SOL to bounty PDA (it's program-owned, so it can sign later)
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.poster.key(),
-            &ctx.accounts.escrow.key(),
+            &bounty.key(),
             reward_lamports,
         );
         anchor_lang::solana_program::program::invoke(
             &ix,
             &[
                 ctx.accounts.poster.to_account_info(),
-                ctx.accounts.escrow.to_account_info(),
+                bounty.to_account_info(),
             ],
         )?;
 
@@ -125,21 +126,25 @@ pub mod agentbounty {
 
     /// Approve work and release payment
     pub fn approve_work(ctx: Context<ApproveWork>) -> Result<()> {
-        let bounty = &mut ctx.accounts.bounty;
-        require!(bounty.status == BountyStatus::Submitted, ErrorCode::WorkNotSubmitted);
-        require!(bounty.poster == ctx.accounts.poster.key(), ErrorCode::NotBountyPoster);
+        // Get immutable data first
+        let bounty_id = ctx.accounts.bounty.id;
+        let bounty_id_bytes = bounty_id.to_le_bytes();
+        let reward = ctx.accounts.bounty.reward_lamports;
+        let claimer_key = ctx.accounts.bounty.claimer.unwrap();
+        
+        // Validation
+        require!(ctx.accounts.bounty.status == BountyStatus::Submitted, ErrorCode::WorkNotSubmitted);
+        require!(ctx.accounts.bounty.poster == ctx.accounts.poster.key(), ErrorCode::NotBountyPoster);
 
         let protocol = &ctx.accounts.protocol;
-        let reward = bounty.reward_lamports;
         let fee = (reward * protocol.fee_bps as u64) / 10_000;
         let payout = reward - fee;
 
-        // Transfer using Anchor's system program helper
-        let bounty_key = bounty.key();
+        // Transfer from bounty PDA (program-owned, can sign)
         let seeds: &[&[&[u8]]] = &[&[
-            b"escrow",
-            bounty_key.as_ref(),
-            &[ctx.bumps.escrow],
+            b"bounty",
+            &bounty_id_bytes,
+            &[ctx.bumps.bounty],
         ]];
         
         // Transfer payout to claimer
@@ -147,7 +152,7 @@ pub mod agentbounty {
             CpiContext::new_with_signer(
                 ctx.accounts.system_program.to_account_info(),
                 anchor_lang::system_program::Transfer {
-                    from: ctx.accounts.escrow.to_account_info(),
+                    from: ctx.accounts.bounty.to_account_info(),
                     to: ctx.accounts.claimer.to_account_info(),
                 },
                 seeds,
@@ -160,7 +165,7 @@ pub mod agentbounty {
             CpiContext::new_with_signer(
                 ctx.accounts.system_program.to_account_info(),
                 anchor_lang::system_program::Transfer {
-                    from: ctx.accounts.escrow.to_account_info(),
+                    from: ctx.accounts.bounty.to_account_info(),
                     to: ctx.accounts.fee_vault.to_account_info(),
                 },
                 seeds,
@@ -168,6 +173,8 @@ pub mod agentbounty {
             fee,
         )?;
 
+        // Update state after transfers
+        let bounty = &mut ctx.accounts.bounty;
         bounty.status = BountyStatus::Completed;
         bounty.completed_at = Some(Clock::get()?.unix_timestamp);
 
@@ -175,8 +182,8 @@ pub mod agentbounty {
         protocol_mut.total_completed += 1;
 
         emit!(WorkApproved {
-            bounty_id: bounty.id,
-            claimer: bounty.claimer.unwrap(),
+            bounty_id,
+            claimer: claimer_key,
             payout,
             fee,
         });
@@ -186,41 +193,41 @@ pub mod agentbounty {
 
     /// Cancel a bounty (only if unclaimed)
     pub fn cancel_bounty(ctx: Context<CancelBounty>) -> Result<()> {
-        let bounty = &mut ctx.accounts.bounty;
-        require!(bounty.status == BountyStatus::Open, ErrorCode::CannotCancelClaimed);
-        require!(bounty.poster == ctx.accounts.poster.key(), ErrorCode::NotBountyPoster);
+        // Get immutable data first
+        let bounty_id = ctx.accounts.bounty.id;
+        let bounty_id_bytes = bounty_id.to_le_bytes();
+        let reward = ctx.accounts.bounty.reward_lamports;
+        
+        // Validation
+        require!(ctx.accounts.bounty.status == BountyStatus::Open, ErrorCode::CannotCancelClaimed);
+        require!(ctx.accounts.bounty.poster == ctx.accounts.poster.key(), ErrorCode::NotBountyPoster);
 
-        let reward = bounty.reward_lamports;
+        // Derive bounty PDA bump for signing
+        let seeds: &[&[&[u8]]] = &[&[
+            b"bounty",
+            &bounty_id_bytes,
+            &[ctx.bumps.bounty],
+        ]];
 
-        // Derive escrow bump for PDA signing
-        let bounty_key = bounty.key();
-        let seeds = &[
-            b"escrow".as_ref(),
-            bounty_key.as_ref(),
-            &[ctx.bumps.escrow],
-        ];
-        let signer = &[&seeds[..]];
-
-        // Refund to poster via CPI
-        let transfer_refund = anchor_lang::solana_program::system_instruction::transfer(
-            &ctx.accounts.escrow.key(),
-            &ctx.accounts.poster.key(),
-            reward,
-        );
-        anchor_lang::solana_program::program::invoke_signed(
-            &transfer_refund,
-            &[
-                ctx.accounts.escrow.to_account_info(),
-                ctx.accounts.poster.to_account_info(),
+        // Refund to poster via CPI from bounty account
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
                 ctx.accounts.system_program.to_account_info(),
-            ],
-            signer,
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.bounty.to_account_info(),
+                    to: ctx.accounts.poster.to_account_info(),
+                },
+                seeds,
+            ),
+            reward,
         )?;
 
+        // Update state after transfer
+        let bounty = &mut ctx.accounts.bounty;
         bounty.status = BountyStatus::Cancelled;
 
         emit!(BountyCancelled {
-            bounty_id: bounty.id,
+            bounty_id,
         });
 
         Ok(())
@@ -270,14 +277,6 @@ pub struct CreateBounty<'info> {
     )]
     pub bounty: Account<'info, Bounty>,
     
-    /// CHECK: Escrow PDA - system account to hold bounty funds  
-    #[account(
-        mut,
-        seeds = [b"escrow", bounty.key().as_ref()],
-        bump
-    )]
-    pub escrow: AccountInfo<'info>,
-    
     #[account(mut)]
     pub poster: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -300,21 +299,18 @@ pub struct SubmitWork<'info> {
 #[derive(Accounts)]
 pub struct ApproveWork<'info> {
     #[account(
+        mut,
         seeds = [b"protocol"],
         bump
     )]
     pub protocol: Account<'info, Protocol>,
     
-    #[account(mut)]
-    pub bounty: Account<'info, Bounty>,
-    
-    /// CHECK: Escrow PDA
     #[account(
         mut,
-        seeds = [b"escrow", bounty.key().as_ref()],
+        seeds = [b"bounty", bounty.id.to_le_bytes().as_ref()],
         bump
     )]
-    pub escrow: AccountInfo<'info>,
+    pub bounty: Account<'info, Bounty>,
     
     /// CHECK: Fee vault
     #[account(
@@ -334,16 +330,12 @@ pub struct ApproveWork<'info> {
 
 #[derive(Accounts)]
 pub struct CancelBounty<'info> {
-    #[account(mut)]
-    pub bounty: Account<'info, Bounty>,
-    
-    /// CHECK: Escrow PDA
     #[account(
         mut,
-        seeds = [b"escrow", bounty.key().as_ref()],
+        seeds = [b"bounty", bounty.id.to_le_bytes().as_ref()],
         bump
     )]
-    pub escrow: AccountInfo<'info>,
+    pub bounty: Account<'info, Bounty>,
     
     #[account(mut)]
     pub poster: Signer<'info>,
