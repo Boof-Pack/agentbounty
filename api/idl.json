@@ -1,0 +1,784 @@
+{
+  "address": "9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK",
+  "metadata": {
+    "name": "agentbounty",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Real-time task marketplace for AI agents"
+  },
+  "instructions": [
+    {
+      "name": "approve_work",
+      "docs": [
+        "Approve work and release payment"
+      ],
+      "discriminator": [
+        181,
+        118,
+        45,
+        143,
+        204,
+        88,
+        237,
+        109
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bounty",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "claimer",
+          "writable": true
+        },
+        {
+          "name": "poster",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_bounty",
+      "docs": [
+        "Cancel a bounty (only if unclaimed)"
+      ],
+      "discriminator": [
+        79,
+        65,
+        107,
+        143,
+        128,
+        165,
+        135,
+        46
+      ],
+      "accounts": [
+        {
+          "name": "bounty",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty"
+              }
+            ]
+          }
+        },
+        {
+          "name": "poster",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_bounty",
+      "docs": [
+        "Claim a bounty"
+      ],
+      "discriminator": [
+        225,
+        157,
+        163,
+        238,
+        239,
+        169,
+        75,
+        226
+      ],
+      "accounts": [
+        {
+          "name": "bounty",
+          "writable": true
+        },
+        {
+          "name": "claimer",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_bounty",
+      "docs": [
+        "Create a new bounty"
+      ],
+      "discriminator": [
+        122,
+        90,
+        14,
+        143,
+        8,
+        125,
+        200,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bounty",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  117,
+                  110,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "protocol.total_bounties",
+                "account": "Protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty"
+              }
+            ]
+          }
+        },
+        {
+          "name": "poster",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "reward_lamports",
+          "type": "u64"
+        },
+        {
+          "name": "deadline_ts",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize the protocol"
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  101,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "submit_work",
+      "docs": [
+        "Submit work for a bounty"
+      ],
+      "discriminator": [
+        158,
+        80,
+        101,
+        51,
+        114,
+        130,
+        101,
+        253
+      ],
+      "accounts": [
+        {
+          "name": "bounty",
+          "writable": true
+        },
+        {
+          "name": "claimer",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "submission_url",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Bounty",
+      "discriminator": [
+        237,
+        16,
+        105,
+        198,
+        19,
+        69,
+        242,
+        234
+      ]
+    },
+    {
+      "name": "Protocol",
+      "discriminator": [
+        45,
+        39,
+        101,
+        43,
+        115,
+        72,
+        131,
+        40
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BountyCancelled",
+      "discriminator": [
+        234,
+        186,
+        248,
+        214,
+        198,
+        69,
+        152,
+        23
+      ]
+    },
+    {
+      "name": "BountyClaimed",
+      "discriminator": [
+        140,
+        202,
+        21,
+        51,
+        211,
+        65,
+        142,
+        21
+      ]
+    },
+    {
+      "name": "BountyCreated",
+      "discriminator": [
+        68,
+        252,
+        247,
+        196,
+        154,
+        247,
+        130,
+        49
+      ]
+    },
+    {
+      "name": "WorkApproved",
+      "discriminator": [
+        82,
+        19,
+        106,
+        191,
+        46,
+        255,
+        164,
+        142
+      ]
+    },
+    {
+      "name": "WorkSubmitted",
+      "discriminator": [
+        136,
+        185,
+        210,
+        174,
+        216,
+        140,
+        64,
+        125
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "TitleTooLong",
+      "msg": "Title must be 100 characters or less"
+    },
+    {
+      "code": 6001,
+      "name": "DescriptionTooLong",
+      "msg": "Description must be 1000 characters or less"
+    },
+    {
+      "code": 6002,
+      "name": "RewardTooLow",
+      "msg": "Reward must be at least 0.1 SOL"
+    },
+    {
+      "code": 6003,
+      "name": "RewardTooHigh",
+      "msg": "Reward cannot exceed 10 SOL"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidDeadline",
+      "msg": "Deadline must be in the future"
+    },
+    {
+      "code": 6005,
+      "name": "BountyNotOpen",
+      "msg": "Bounty is not open"
+    },
+    {
+      "code": 6006,
+      "name": "BountyExpired",
+      "msg": "Bounty has expired"
+    },
+    {
+      "code": 6007,
+      "name": "CannotClaimOwnBounty",
+      "msg": "Cannot claim your own bounty"
+    },
+    {
+      "code": 6008,
+      "name": "BountyNotClaimed",
+      "msg": "Bounty is not claimed"
+    },
+    {
+      "code": 6009,
+      "name": "NotBountyClaimer",
+      "msg": "You are not the claimer of this bounty"
+    },
+    {
+      "code": 6010,
+      "name": "WorkNotSubmitted",
+      "msg": "Work has not been submitted"
+    },
+    {
+      "code": 6011,
+      "name": "NotBountyPoster",
+      "msg": "You are not the poster of this bounty"
+    },
+    {
+      "code": 6012,
+      "name": "CannotCancelClaimed",
+      "msg": "Cannot cancel a claimed bounty"
+    },
+    {
+      "code": 6013,
+      "name": "SubmissionTooLong",
+      "msg": "Submission URL must be 500 characters or less"
+    }
+  ],
+  "types": [
+    {
+      "name": "Bounty",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "poster",
+            "type": "pubkey"
+          },
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "reward_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "BountyStatus"
+              }
+            }
+          },
+          {
+            "name": "claimer",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "claimed_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "submission",
+            "type": {
+              "option": "string"
+            }
+          },
+          {
+            "name": "completed_at",
+            "type": {
+              "option": "i64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "BountyCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bounty_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BountyClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bounty_id",
+            "type": "u64"
+          },
+          {
+            "name": "claimer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BountyCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bounty_id",
+            "type": "u64"
+          },
+          {
+            "name": "poster",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward",
+            "type": "u64"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BountyStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Claimed"
+          },
+          {
+            "name": "Submitted"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Protocol",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_bounties",
+            "type": "u64"
+          },
+          {
+            "name": "total_completed",
+            "type": "u64"
+          },
+          {
+            "name": "total_volume",
+            "type": "u64"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WorkApproved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bounty_id",
+            "type": "u64"
+          },
+          {
+            "name": "claimer",
+            "type": "pubkey"
+          },
+          {
+            "name": "payout",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WorkSubmitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bounty_id",
+            "type": "u64"
+          },
+          {
+            "name": "claimer",
+            "type": "pubkey"
+          },
+          {
+            "name": "submission",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}

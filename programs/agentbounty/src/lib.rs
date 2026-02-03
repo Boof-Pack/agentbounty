@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("BountyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+declare_id!("9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK");
 
 #[program]
 pub mod agentbounty {

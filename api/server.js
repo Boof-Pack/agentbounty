@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const PROGRAM_ID = new PublicKey('BountyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'); // Will update after deployment
+const PROGRAM_ID = new PublicKey('9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK');
 
 // Initialize Solana connection
 const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');

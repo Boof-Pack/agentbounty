@@ -7,7 +7,7 @@ import {
 } from '@solana/web3.js';
 import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
 
-export const PROGRAM_ID = new PublicKey('BountyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+export const PROGRAM_ID = new PublicKey('9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK');
 
 export interface BountyData {
   id: number;
