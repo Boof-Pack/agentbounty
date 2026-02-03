@@ -134,13 +134,39 @@ pub mod agentbounty {
         let fee = (reward * protocol.fee_bps as u64) / 10_000;
         let payout = reward - fee;
 
+        // Transfer using Anchor's system program helper
+        let bounty_key = bounty.key();
+        let seeds: &[&[&[u8]]] = &[&[
+            b"escrow",
+            bounty_key.as_ref(),
+            &[ctx.bumps.escrow],
+        ]];
+        
         // Transfer payout to claimer
-        **ctx.accounts.escrow.to_account_info().try_borrow_mut_lamports()? -= payout;
-        **ctx.accounts.claimer.to_account_info().try_borrow_mut_lamports()? += payout;
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.escrow.to_account_info(),
+                    to: ctx.accounts.claimer.to_account_info(),
+                },
+                seeds,
+            ),
+            payout,
+        )?;
 
-        // Transfer fee to protocol
-        **ctx.accounts.escrow.to_account_info().try_borrow_mut_lamports()? -= fee;
-        **ctx.accounts.fee_vault.to_account_info().try_borrow_mut_lamports()? += fee;
+        // Transfer fee to vault
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.escrow.to_account_info(),
+                    to: ctx.accounts.fee_vault.to_account_info(),
+                },
+                seeds,
+            ),
+            fee,
+        )?;
 
         bounty.status = BountyStatus::Completed;
         bounty.completed_at = Some(Clock::get()?.unix_timestamp);
@@ -166,9 +192,30 @@ pub mod agentbounty {
 
         let reward = bounty.reward_lamports;
 
-        // Refund to poster
-        **ctx.accounts.escrow.to_account_info().try_borrow_mut_lamports()? -= reward;
-        **ctx.accounts.poster.to_account_info().try_borrow_mut_lamports()? += reward;
+        // Derive escrow bump for PDA signing
+        let bounty_key = bounty.key();
+        let seeds = &[
+            b"escrow".as_ref(),
+            bounty_key.as_ref(),
+            &[ctx.bumps.escrow],
+        ];
+        let signer = &[&seeds[..]];
+
+        // Refund to poster via CPI
+        let transfer_refund = anchor_lang::solana_program::system_instruction::transfer(
+            &ctx.accounts.escrow.key(),
+            &ctx.accounts.poster.key(),
+            reward,
+        );
+        anchor_lang::solana_program::program::invoke_signed(
+            &transfer_refund,
+            &[
+                ctx.accounts.escrow.to_account_info(),
+                ctx.accounts.poster.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+            signer,
+        )?;
 
         bounty.status = BountyStatus::Cancelled;
 
@@ -223,7 +270,7 @@ pub struct CreateBounty<'info> {
     )]
     pub bounty: Account<'info, Bounty>,
     
-    /// CHECK: Escrow PDA for this bounty
+    /// CHECK: Escrow PDA - system account to hold bounty funds  
     #[account(
         mut,
         seeds = [b"escrow", bounty.key().as_ref()],
@@ -282,6 +329,7 @@ pub struct ApproveWork<'info> {
     pub claimer: AccountInfo<'info>,
     
     pub poster: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -299,6 +347,7 @@ pub struct CancelBounty<'info> {
     
     #[account(mut)]
     pub poster: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 // ===== STATE =====
