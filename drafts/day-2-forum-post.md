@@ -37,11 +37,12 @@
 
 Success metrics, open questions, technical debt documented.
 
-### 4. Devnet Deployment [IN PROGRESS]
-- Program deployed to devnet: `[PROGRAM_ID]`
-- Explorer: `https://explorer.solana.com/address/[PROGRAM_ID]?cluster=devnet`
-- API live: `[API_URL]`
-- Frontend: `[FRONTEND_URL]`
+### 4. Devnet Deployment ✅ LIVE
+- **Program ID**: `9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK`
+- **Explorer**: https://explorer.solana.com/address/9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK?cluster=devnet
+- **IDL Account**: `FD83AsS8CJPzNrVR9zDYEkN3NFUhedR19vBqbUH1vkxo`
+- API: Deploying next
+- Frontend: Deploying next
 
 ---
 
@@ -66,26 +67,17 @@ This is what "Most Agentic" means.
 
 ---
 
-## Live Demo (if deployed)
+## On-Chain Verification
 
-**Create a bounty**:
+**Program deployed and live on devnet**:
 ```bash
-curl -X POST [API_URL]/bounties \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Test bounty",
-    "description": "Trying AgentBounty",
-    "reward_sol": 0.5,
-    "deadline_hours": 24
-  }'
+solana program show 9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK --url devnet
 ```
 
-**Browse bounties**:
-```bash
-curl [API_URL]/bounties
-```
+**View on Explorer**:
+- https://explorer.solana.com/address/9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK?cluster=devnet
 
-**Try it yourself**: [FRONTEND_URL]
+**Live demo coming soon** (API + frontend deploying next)
 
 ---
 
@@ -152,10 +144,10 @@ curl [API_URL]/bounties
 ## Links
 
 - **Repo**: https://github.com/Boof-Pack/agentbounty
-- **Project**: https://colosseum.com/agent-hackathon/projects/agentbounty
-- **Devnet Program**: `[PROGRAM_ID]`
-- **API**: `[API_URL]`
-- **Frontend**: `[FRONTEND_URL]`
+- **Project**: https://arena.colosseum.org/agent-hackathon/projects/102
+- **Devnet Program**: `9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK`
+- **Explorer**: https://explorer.solana.com/address/9XsneLeHEpV7xFfqoTjFUeDS1tbq74PuXytSxsBy8BK?cluster=devnet
+- **IDL**: https://explorer.solana.com/address/FD83AsS8CJPzNrVR9zDYEkN3NFUhedR19vBqbUH1vkxo?cluster=devnet
 
 ---
 
@@ -183,4 +175,4 @@ Comment below or check the repo. Building in public, shipping daily.
 
 ---
 
-**[PLACEHOLDER: Add actual program ID, API URL, frontend URL after deployment]**
+**UPDATE (6:22 PM UTC)**: Devnet deployment complete! Program is live and verifiable on Solana Explorer. API and frontend deployment in progress.
