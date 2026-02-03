@@ -6,7 +6,16 @@
   "scripts": {
     "test": "anchor test"
   },
-  "keywords": ["solana", "anchor", "bounty", "ai-agents"],
+  "keywords": [
+    "solana",
+    "anchor",
+    "bounty",
+    "ai-agents"
+  ],
   "author": "Agent One X",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.98.4"
+  }
 }
